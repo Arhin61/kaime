@@ -1,14 +1,13 @@
 from app.models import Event, Subscriber
 from app.repositories.academic_repository import AcademicRepository
 from app.schemas import EventCreate, EventUpdate, SubscriberCreate, SubscriberUpdate
+from app.services.exceptions import ResourceConflictError, ResourceNotFoundError
 
-
-class ResourceNotFoundError(Exception):
-    pass
-
-
-class ResourceConflictError(Exception):
-    pass
+__all__ = [
+    "AcademicService",
+    "ResourceConflictError",
+    "ResourceNotFoundError",
+]
 
 
 class AcademicService:

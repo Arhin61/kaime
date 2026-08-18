@@ -17,13 +17,41 @@ export default function Sidebar() {
 
       <nav className="flex flex-col gap-2">
         <p className="px-4 text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
-          Management
+          Notifications
         </p>
         <NavLink to="events" className={linkClasses}>
           Events
         </NavLink>
         <NavLink to="subscribers" className={linkClasses}>
           Subscribers
+        </NavLink>
+
+        <p className="px-4 mt-4 text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+          School
+        </p>
+        <NavLink to="students" className={linkClasses}>
+          Students
+        </NavLink>
+        <NavLink to="courses" className={linkClasses}>
+          Courses
+        </NavLink>
+        <NavLink to="enrollments" className={linkClasses}>
+          Enrollments
+        </NavLink>
+        <NavLink to="timetable" className={linkClasses}>
+          Timetable
+        </NavLink>
+        <NavLink to="attendance" className={linkClasses}>
+          Attendance
+        </NavLink>
+        <NavLink to="grades" className={linkClasses}>
+          Grades
+        </NavLink>
+        <NavLink to="fees" className={linkClasses}>
+          Fees
+        </NavLink>
+        <NavLink to="terms" className={linkClasses}>
+          Academic Terms
         </NavLink>
       </nav>
     </aside>
