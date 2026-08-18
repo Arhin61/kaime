@@ -1,0 +1,54 @@
+%% Figure 3.6: Sequence diagram of one notification dispatch cycle
+sequenceDiagram
+    autonumber
+    participant SCH as SchedulerService
+    participant ORC as NotificationOrchestratorService
+    participant REP as NotificationRepository
+    participant DB as PostgreSQL
+    participant REN as TemplateRenderer
+    participant CH as EmailNotificationChannel
+    participant SMTP as SMTP Server
+
+    SCH->>ORC: process_due_notifications()
+    ORC->>REP: get_upcoming_events(now, now + lookahead)
+    REP->>DB: SELECT * FROM events WHERE start_date BETWEEN ...
+    DB-->>REP: active events
+    REP-->>ORC: events[]
+    ORC->>REP: get_subscribers()
+    REP->>DB: SELECT * FROM subscribers
+    DB-->>REP: subscribers[]
+    REP-->>ORC: subscribers[]
+
+    loop for each event
+        ORC->>ORC: days_remaining = event_date - today
+        alt days_remaining not in offsets
+            ORC-->>SCH: skip event
+        else offset matches
+            loop for each subscriber
+                ORC->>REP: has_dispatch(event, email, channel, days_before, date)
+                REP->>DB: SELECT FROM notification_dispatches
+                DB-->>REP: exists?
+                alt already dispatched
+                    REP-->>ORC: true
+                    ORC-->>ORC: skip (idempotency guard)
+                else not yet dispatched
+                    REP-->>ORC: false
+                    ORC->>REN: render(template, context)
+                    REN-->>ORC: html_body
+                    ORC->>CH: send(subject, recipient, html_body)
+                    CH->>SMTP: SMTP transmission
+                    alt send succeeds
+                        SMTP-->>CH: 250 OK
+                        CH-->>ORC: success
+                        ORC->>REP: record_dispatch(status = "sent")
+                    else send fails after retries
+                        SMTP-->>CH: error
+                        CH-->>ORC: exception
+                        ORC->>REP: record_dispatch(status = "failed", error_message)
+                    end
+                    REP->>DB: INSERT INTO notification_dispatches
+                end
+            end
+        end
+    end
+    ORC-->>SCH: cycle complete

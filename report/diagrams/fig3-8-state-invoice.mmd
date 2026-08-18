@@ -1,0 +1,21 @@
+%% Figure 3.8: State transition diagram for an invoice
+stateDiagram-v2
+    [*] --> unpaid : invoice issued (billing run or manual)
+    unpaid --> partial : payment recorded, 0 < paid < amount
+    unpaid --> paid : payment recorded, paid = amount
+    partial --> partial : further payment, paid still < amount
+    partial --> paid : final payment, paid = amount
+    unpaid --> void : void_invoice() while no payment exists
+    partial --> void : rejected — payments already recorded
+    paid --> void : rejected — invoice already settled
+    void --> [*]
+    paid --> [*]
+
+    note right of void
+        void_invoice() raises
+        ResourceConflictError (HTTP 409)
+        if any payment has been recorded.
+        Overpayment is likewise rejected:
+        paid + new_payment must not
+        exceed invoice.amount.
+    end note

@@ -1,0 +1,36 @@
+%% Figure 3.2: Layered architecture of the Kaime system
+flowchart LR
+    subgraph CLIENT["Presentation Tier"]
+        direction TB
+        UI["React 19 + TypeScript SPA<br/>Vite · Tailwind CSS<br/>React Router"]
+    end
+
+    subgraph API["Application Tier — FastAPI"]
+        direction TB
+        ROUTERS["Router Layer<br/>subscribers · events · terms<br/>students · courses · enrollments<br/>timetable · attendance · grades · fees"]
+        DEPS["Dependency Injection"]
+        SERVICES["Service Layer<br/>School · Attendance · Grading<br/>Finance · NotificationOrchestrator"]
+        REPOS["Repository Layer<br/>School · Notification · Academic"]
+        ROUTERS --> DEPS --> SERVICES --> REPOS
+    end
+
+    subgraph BG["Background Processing"]
+        direction TB
+        SCHED["SchedulerService<br/>APScheduler"]
+        RENDER["TemplateRenderer<br/>Jinja2"]
+        CHANNEL["NotificationChannel<br/>Email"]
+        RENDER --> CHANNEL
+    end
+
+    subgraph DATA["Data Tier"]
+        direction TB
+        DB[("PostgreSQL<br/>15 tables<br/>Alembic migrations")]
+    end
+
+    SMTP["External<br/>SMTP Server"]
+
+    UI -->|"HTTPS / JSON REST<br/>(SPA served as static<br/>files by the same process)"| ROUTERS
+    REPOS -->|"SQLModel /<br/>SQLAlchemy ORM"| DB
+    SCHED -->|"fires every<br/>N minutes"| SERVICES
+    SERVICES --> RENDER
+    CHANNEL -->|"SMTP"| SMTP

@@ -1,0 +1,20 @@
+%% Figure 3.1: Iterative and incremental development cycle applied in the study
+flowchart LR
+    subgraph INC["One increment = one vertical slice"]
+        direction TB
+        R["Requirements<br/>for this slice"] --> D["Design<br/>table · service rules"]
+        D --> I["Implement<br/>migration → repository →<br/>service → router → view"]
+        I --> T["Test<br/>valid and invalid input"]
+        T --> V["Review and<br/>merge to main"]
+    end
+
+    START(["Problem identification<br/>and requirements elicitation"]) --> INC
+    INC --> CHECK{"Requirements<br/>refined or<br/>new rule found?"}
+    CHECK -->|"Yes — feed back"| INC
+    CHECK -->|"No"| NEXT{"Further increments<br/>remaining?"}
+    NEXT -->|"Yes"| INC
+    NEXT -->|"No"| EVAL["System-wide evaluation<br/>against requirements"]
+    EVAL --> COMM(["Communication:<br/>report and defence"])
+
+    SEQ["Increment order by dependency:<br/>1 Terms → 2 Students → 3 Courses →<br/>4 Enrolment → 5 Timetable → 6 Attendance →<br/>7 Assessment and grading → 8 Fees and billing →<br/>9 Notifications → 10 Dashboard integration"]
+    SEQ -.-> INC

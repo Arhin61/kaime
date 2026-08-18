@@ -1,0 +1,49 @@
+%% Figure 3.3: Use case diagram for the Kaime system
+flowchart LR
+    ADMIN(("Administrator"))
+    LECT(("Lecturer"))
+    BURSAR(("Finance Officer"))
+    STUDENT(("Student"))
+    SCHED(("Scheduler<br/>«system»"))
+
+    subgraph SYSTEM["Kaime System"]
+        U1(["Manage Academic Terms"])
+        U2(["Manage Student Records"])
+        U3(["Manage Course Catalogue"])
+        U4(["Enroll Student in Course"])
+        U5(["Schedule Class Sessions"])
+        U6(["Mark Attendance Register"])
+        U7(["Define Weighted Assessments"])
+        U8(["Record Assessment Scores"])
+        U9(["Compute Results and GPA"])
+        U10(["Define Fee Structure"])
+        U11(["Run Billing"])
+        U12(["Record Payment"])
+        U13(["View Outstanding Balance"])
+        U14(["Create Notification Event"])
+        U15(["Dispatch Due Notifications"])
+        U16(["Receive Email Reminder"])
+    end
+
+    ADMIN --> U1
+    ADMIN --> U2
+    ADMIN --> U3
+    ADMIN --> U4
+    ADMIN --> U5
+    ADMIN --> U14
+
+    LECT --> U6
+    LECT --> U7
+    LECT --> U8
+    LECT --> U9
+
+    BURSAR --> U10
+    BURSAR --> U11
+    BURSAR --> U12
+    BURSAR --> U13
+
+    SCHED --> U15
+    U15 -.->|"«include»"| U16
+    STUDENT --> U16
+    U11 -.->|"«include»"| U2
+    U8 -.->|"«include»"| U4

@@ -1,0 +1,153 @@
+%% Figure 3.4: Entity Relationship Diagram of the Kaime database
+erDiagram
+    SUBSCRIBERS ||--o{ STUDENTS : "linked by email"
+    SUBSCRIBERS ||--o{ NOTIFICATION_DISPATCHES : receives
+    EVENTS ||--o{ NOTIFICATION_DISPATCHES : generates
+
+    ACADEMIC_TERMS ||--o{ ENROLLMENTS : scopes
+    ACADEMIC_TERMS ||--o{ CLASS_SESSIONS : scopes
+    ACADEMIC_TERMS ||--o{ ASSESSMENTS : scopes
+    ACADEMIC_TERMS ||--o{ FEE_STRUCTURES : scopes
+    ACADEMIC_TERMS ||--o{ INVOICES : scopes
+
+    STUDENTS ||--o{ ENROLLMENTS : holds
+    STUDENTS ||--o{ INVOICES : "is billed"
+    COURSES ||--o{ ENROLLMENTS : "is taken via"
+    COURSES ||--o{ CLASS_SESSIONS : "is timetabled as"
+    COURSES ||--o{ ASSESSMENTS : "is graded by"
+
+    ENROLLMENTS ||--o{ ATTENDANCE_RECORDS : "is marked in"
+    ENROLLMENTS ||--o{ ASSESSMENT_SCORES : "is scored in"
+    CLASS_SESSIONS ||--o{ ATTENDANCE_RECORDS : "is register for"
+    ASSESSMENTS ||--o{ ASSESSMENT_SCORES : "is scored as"
+
+    FEE_STRUCTURES ||--o{ INVOICES : "is billed as"
+    INVOICES ||--o{ PAYMENTS : "is settled by"
+
+    SUBSCRIBERS {
+        string email PK
+        string name
+        string surname
+        string other_names "nullable"
+        string program
+    }
+    EVENTS {
+        int id PK
+        string title
+        string body
+        datetime start_date
+        datetime end_date "nullable"
+        json notification_offsets "nullable"
+        string email_template
+        bool is_active
+    }
+    NOTIFICATION_DISPATCHES {
+        uuid id PK
+        int event_id FK
+        string recipient_email FK
+        string channel
+        int days_before
+        date scheduled_for
+        datetime sent_at
+        string status
+        string error_message "nullable"
+    }
+    ACADEMIC_TERMS {
+        int id PK
+        string name UK
+        string academic_year
+        date start_date
+        date end_date
+        bool is_current
+    }
+    STUDENTS {
+        uuid id PK
+        string index_number UK
+        string email UK
+        string subscriber_email FK "nullable"
+        string first_name
+        string last_name
+        string program
+        int level
+        string status
+        date enrolled_on
+    }
+    COURSES {
+        int id PK
+        string code UK
+        string title
+        int credit_hours
+        string department "nullable"
+        int level "nullable"
+        bool is_active
+    }
+    ENROLLMENTS {
+        uuid id PK
+        uuid student_id FK
+        int course_id FK
+        int term_id FK
+        string status
+        datetime enrolled_at
+    }
+    CLASS_SESSIONS {
+        int id PK
+        int course_id FK
+        int term_id FK
+        int day_of_week
+        time start_time
+        time end_time
+        string room "nullable"
+    }
+    ATTENDANCE_RECORDS {
+        uuid id PK
+        uuid enrollment_id FK
+        int class_session_id FK "nullable"
+        date session_date
+        string status
+        string remarks "nullable"
+    }
+    ASSESSMENTS {
+        int id PK
+        int course_id FK
+        int term_id FK
+        string title
+        string kind
+        decimal max_score
+        decimal weight
+        datetime due_date "nullable"
+    }
+    ASSESSMENT_SCORES {
+        uuid id PK
+        int assessment_id FK
+        uuid enrollment_id FK
+        decimal score
+        datetime graded_at
+    }
+    FEE_STRUCTURES {
+        int id PK
+        int term_id FK
+        string name
+        decimal amount
+        string program "nullable"
+        int level "nullable"
+        date due_date
+    }
+    INVOICES {
+        uuid id PK
+        uuid student_id FK
+        int term_id FK
+        int fee_structure_id FK "nullable"
+        string description
+        decimal amount
+        date issued_on
+        date due_date
+        string status
+    }
+    PAYMENTS {
+        uuid id PK
+        uuid invoice_id FK
+        decimal amount
+        string method
+        string reference "nullable"
+        date paid_on
+    }

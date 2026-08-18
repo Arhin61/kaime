@@ -1,0 +1,101 @@
+%% Figure 3.5: Class diagram of the service and repository layers
+classDiagram
+    class SchoolRepository {
+        -Session session
+        +add(entity)
+        +delete(entity)
+        +save()
+        +list_students(program, level, status, search)
+        +list_enrollments(student_id, course_id, term_id)
+        +find_room_clashes(term_id, day, room)
+        +get_invoice_for_structure(student_id, structure_id)
+        +list_scores_for_enrollments(ids)
+    }
+
+    class SchoolService {
+        -SchoolRepository repository
+        +create_term(payload)
+        +create_student(payload)
+        +create_course(payload)
+        +enroll_student(payload)
+        +create_class_session(payload)
+        -_assert_no_room_clash(...)
+    }
+
+    class AttendanceService {
+        -SchoolRepository repository
+        +mark_attendance(payload)
+        +list_attendance(filters)
+        +course_summary(course_id, term_id)
+        +delete_record(record_id)
+    }
+
+    class GradingService {
+        -SchoolRepository repository
+        +create_assessment(payload)
+        +record_scores(payload)
+        +course_results(course_id, term_id)
+        +student_results(student_id, term_id)
+        -_assert_weight_budget(...)
+        -_results_for(rows)
+    }
+
+    class FinanceService {
+        -SchoolRepository repository
+        +create_fee_structure(payload)
+        +run_billing(structure_id)
+        +create_invoice(payload)
+        +record_payment(payload)
+        +student_balance(student_id, term_id)
+        -_status_for(amount, paid)
+    }
+
+    class NotificationOrchestratorService {
+        -NotificationRepository repository
+        -TemplateRenderer renderer
+        -NotificationChannel email_channel
+        -NotificationSettings settings
+        +process_due_notifications(now)
+        -_process_event(event, subscribers, now)
+        -_resolve_offsets(event)
+        -_send_with_retry(...)
+    }
+
+    class NotificationChannel {
+        <<interface>>
+        +channel_name
+        +send(subject, recipient, html_body)
+    }
+
+    class EmailNotificationChannel {
+        -NotificationSettings settings
+        +channel_name = "email"
+        +send(subject, recipient, html_body)
+    }
+
+    class SchedulerService {
+        -AsyncIOScheduler scheduler
+        +start()
+        +shutdown()
+    }
+
+    class TemplateRenderer {
+        -Path template_dir
+        +render(template_name, context)
+    }
+
+    class ResourceNotFoundError
+    class ResourceConflictError
+
+    SchoolService --> SchoolRepository
+    AttendanceService --> SchoolRepository
+    GradingService --> SchoolRepository
+    FinanceService --> SchoolRepository
+    NotificationOrchestratorService --> NotificationChannel
+    NotificationOrchestratorService --> TemplateRenderer
+    NotificationChannel <|.. EmailNotificationChannel
+    SchedulerService ..> NotificationOrchestratorService : invokes
+    SchoolService ..> ResourceNotFoundError : raises
+    SchoolService ..> ResourceConflictError : raises
+    GradingService ..> ResourceConflictError : raises
+    FinanceService ..> ResourceConflictError : raises

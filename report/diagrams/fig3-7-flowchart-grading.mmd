@@ -1,0 +1,16 @@
+%% Figure 3.9: Flowchart of the weighted result computation algorithm
+flowchart TB
+    START(["Start: results requested for a course and term"]) --> A
+    A["Fetch enrolments for the course and term, discarding those marked dropped"] --> B
+    B["For every recorded score whose assessment has max_score > 0 and weight > 0, accumulate per enrolment: earned += (score / max_score) x weight, and graded_weight += weight"] --> C
+    C{"Is graded_weight > 0 for this enrolment?"}
+    C -->|"No — nothing graded yet"| G["percentage = 0.00"]
+    C -->|"Yes"| H["percentage = earned / graded_weight x 100 — normalised over the weight actually graded"]
+    G --> I
+    H --> I
+    I["Map percentage to a letter grade and grade point using GRADE_SCALE"] --> J
+    J["Emit one result per enrolment: percentage, graded weight, letter grade, grade point"] --> K
+    K{"Is a student transcript requested?"}
+    K -->|"No"| STOP(["End"])
+    K -->|"Yes"| L["total_credits = sum of credit hours; GPA = sum(grade_point x credit_hours) / total_credits, or 0.0 when total_credits = 0"]
+    L --> STOP

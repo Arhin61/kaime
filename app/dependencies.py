@@ -11,9 +11,14 @@ from app.core.session import get_session
 from app.models import User
 from app.repositories.academic_repository import AcademicRepository
 from app.repositories.notification_repository import NotificationRepository
+from app.repositories.school_repository import SchoolRepository
 from app.services.academic_service import AcademicService
+from app.services.attendance_service import AttendanceService
 from app.services.channels.email import EmailNotificationChannel
+from app.services.finance_service import FinanceService
+from app.services.grading_service import GradingService
 from app.services.notification_service import NotificationOrchestratorService
+from app.services.school_service import SchoolService
 from app.services.template_renderer import TemplateRenderer
 from app.services.user_service import UserService
 
@@ -97,6 +102,42 @@ def get_academic_service(
     repository: AcademicRepository = Depends(get_academic_repository),
 ) -> AcademicService:
     return AcademicService(repository=repository)
+
+
+def get_school_repository(
+    session: Session = Depends(get_session),
+) -> SchoolRepository:
+    return SchoolRepository(session=session)
+
+
+def get_school_service(
+    repository: SchoolRepository = Depends(get_school_repository),
+) -> SchoolService:
+    return SchoolService(repository=repository)
+
+
+def get_attendance_service(
+    repository: SchoolRepository = Depends(get_school_repository),
+) -> AttendanceService:
+    return AttendanceService(repository=repository)
+
+
+def get_grading_service(
+    repository: SchoolRepository = Depends(get_school_repository),
+) -> GradingService:
+    return GradingService(repository=repository)
+
+
+def get_finance_service(
+    repository: SchoolRepository = Depends(get_school_repository),
+) -> FinanceService:
+    return FinanceService(repository=repository)
+
+
+SchoolServiceDep = Annotated[SchoolService, Depends(get_school_service)]
+AttendanceServiceDep = Annotated[AttendanceService, Depends(get_attendance_service)]
+GradingServiceDep = Annotated[GradingService, Depends(get_grading_service)]
+FinanceServiceDep = Annotated[FinanceService, Depends(get_finance_service)]
 
 
 def get_db_session() -> Generator[Session, None, None]:

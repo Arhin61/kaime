@@ -1,0 +1,18 @@
+%% Figure 3.7: Activity diagram for the idempotent fee billing run
+flowchart TD
+    START(["Start: POST /fees/structures/{id}/bill"]) --> A["Load fee structure by id"]
+    A --> B{"Structure exists?"}
+    B -->|No| E1["Raise ResourceNotFoundError -> HTTP 404"]
+    E1 --> STOP(["End"])
+    B -->|Yes| C["Query active students matching<br/>structure.program and structure.level"]
+    C --> D{"Any students<br/>remaining?"}
+    D -->|No| SUM["Return BillingRunRead<br/>invoices_created, students_skipped"]
+    D -->|Yes| F["Take next student"]
+    F --> G{"Invoice already exists<br/>for this student and structure?"}
+    G -->|Yes| H["students_skipped += 1"]
+    H --> D
+    G -->|No| I["Create Invoice<br/>amount, due_date, term from structure<br/>status = unpaid"]
+    I --> J["invoices_created += 1"]
+    J --> D
+    SUM --> K["Commit transaction"]
+    K --> STOP
