@@ -1,8 +1,8 @@
-"""Add school management tables
+"""Create db and tables
 
-Revision ID: d17d64283f16
-Revises: b7d49de2f7da
-Create Date: 2026-08-01 22:43:23.016902
+Revision ID: efcef5b81356
+Revises: 
+Create Date: 2026-08-18 16:43:46.354381
 
 """
 from typing import Sequence, Union
@@ -13,8 +13,8 @@ import sqlmodel
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'd17d64283f16'
-down_revision: Union[str, Sequence[str], None] = 'b7d49de2f7da'
+revision: str = 'efcef5b81356'
+down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -46,6 +46,44 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_courses_code'), 'courses', ['code'], unique=True)
     op.create_index(op.f('ix_courses_department'), 'courses', ['department'], unique=False)
+    op.create_table('events',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('title', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('body', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('start_date', sa.DateTime(), nullable=False),
+    sa.Column('end_date', sa.DateTime(), nullable=True),
+    sa.Column('notification_days_before', sa.Integer(), nullable=True),
+    sa.Column('notification_offsets', sa.JSON(), nullable=True),
+    sa.Column('email_template', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('subscribers',
+    sa.Column('name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('program', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('email', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('surname', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('other_names', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+    sa.PrimaryKeyConstraint('email')
+    )
+    op.create_index(op.f('ix_subscribers_name'), 'subscribers', ['name'], unique=False)
+    op.create_index(op.f('ix_subscribers_other_names'), 'subscribers', ['other_names'], unique=False)
+    op.create_index(op.f('ix_subscribers_surname'), 'subscribers', ['surname'], unique=False)
+    op.create_table('user',
+    sa.Column('email', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
+    sa.Column('phone_number', sqlmodel.sql.sqltypes.AutoString(length=20), nullable=False),
+    sa.Column('email_verified', sa.Boolean(), nullable=False),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.Column('password_hash', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('first_name', sqlmodel.sql.sqltypes.AutoString(length=100), nullable=False),
+    sa.Column('middle_name', sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
+    sa.Column('last_name', sqlmodel.sql.sqltypes.AutoString(length=100), nullable=False),
+    sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('is_superuser', sa.Boolean(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_user_email'), 'user', ['email'], unique=True)
     op.create_table('assessments',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('course_id', sa.Integer(), nullable=False),
@@ -92,6 +130,23 @@ def upgrade() -> None:
     op.create_index(op.f('ix_fee_structures_level'), 'fee_structures', ['level'], unique=False)
     op.create_index(op.f('ix_fee_structures_program'), 'fee_structures', ['program'], unique=False)
     op.create_index(op.f('ix_fee_structures_term_id'), 'fee_structures', ['term_id'], unique=False)
+    op.create_table('notification_dispatches',
+    sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('event_id', sa.Integer(), nullable=False),
+    sa.Column('recipient_email', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('channel', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('days_before', sa.Integer(), nullable=False),
+    sa.Column('scheduled_for', sa.Date(), nullable=False),
+    sa.Column('sent_at', sa.DateTime(), nullable=False),
+    sa.Column('status', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('error_message', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+    sa.ForeignKeyConstraint(['event_id'], ['events.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('event_id', 'recipient_email', 'channel', 'days_before', 'scheduled_for', 'status', name='uq_notification_dispatch_key')
+    )
+    op.create_index(op.f('ix_notification_dispatches_channel'), 'notification_dispatches', ['channel'], unique=False)
+    op.create_index(op.f('ix_notification_dispatches_event_id'), 'notification_dispatches', ['event_id'], unique=False)
+    op.create_index(op.f('ix_notification_dispatches_recipient_email'), 'notification_dispatches', ['recipient_email'], unique=False)
     op.create_table('students',
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('index_number', sqlmodel.sql.sqltypes.AutoString(length=50), nullable=False),
@@ -229,6 +284,10 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_students_index_number'), table_name='students')
     op.drop_index(op.f('ix_students_email'), table_name='students')
     op.drop_table('students')
+    op.drop_index(op.f('ix_notification_dispatches_recipient_email'), table_name='notification_dispatches')
+    op.drop_index(op.f('ix_notification_dispatches_event_id'), table_name='notification_dispatches')
+    op.drop_index(op.f('ix_notification_dispatches_channel'), table_name='notification_dispatches')
+    op.drop_table('notification_dispatches')
     op.drop_index(op.f('ix_fee_structures_term_id'), table_name='fee_structures')
     op.drop_index(op.f('ix_fee_structures_program'), table_name='fee_structures')
     op.drop_index(op.f('ix_fee_structures_level'), table_name='fee_structures')
@@ -240,6 +299,13 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_assessments_term_id'), table_name='assessments')
     op.drop_index(op.f('ix_assessments_course_id'), table_name='assessments')
     op.drop_table('assessments')
+    op.drop_index(op.f('ix_user_email'), table_name='user')
+    op.drop_table('user')
+    op.drop_index(op.f('ix_subscribers_surname'), table_name='subscribers')
+    op.drop_index(op.f('ix_subscribers_other_names'), table_name='subscribers')
+    op.drop_index(op.f('ix_subscribers_name'), table_name='subscribers')
+    op.drop_table('subscribers')
+    op.drop_table('events')
     op.drop_index(op.f('ix_courses_department'), table_name='courses')
     op.drop_index(op.f('ix_courses_code'), table_name='courses')
     op.drop_table('courses')

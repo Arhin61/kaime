@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
 _base_config = SettingsConfigDict(
-    env_file=PROJECT_DIR / ".env",
+    env_file=(PROJECT_DIR / ".env"),
     env_ignore_empty=True,
     extra="ignore",
 )
