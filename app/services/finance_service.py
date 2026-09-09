@@ -1,5 +1,8 @@
+import asyncio
 from decimal import Decimal
 from uuid import UUID
+
+from fastapi import BackgroundTasks
 
 from app.models import FeeStructure, Invoice, Payment, Student
 from app.repositories.school_repository import SchoolRepository
@@ -18,6 +21,7 @@ from app.schemas import (
     StudentStatus,
 )
 from app.services.exceptions import ResourceConflictError, ResourceNotFoundError
+from app.services.user_notifications import EmailSchema, NotificationService
 
 ZERO = Decimal("0.00")
 
@@ -25,8 +29,14 @@ ZERO = Decimal("0.00")
 class FinanceService:
     """Fee structures, student invoices and payments."""
 
-    def __init__(self, repository: SchoolRepository):
+    def __init__(
+        self, repository: SchoolRepository, tasks: BackgroundTasks | None = None
+    ):
         self.repository = repository
+        self.tasks = tasks
+        self.notification = (
+            NotificationService(tasks=tasks) if tasks is not None else None
+        )
 
     # --- fee structures ---------------------------------------------------
 
@@ -123,15 +133,15 @@ class FinanceService:
         structure = None
         if payload.fee_structure_id is not None:
             structure = self.get_fee_structure(payload.fee_structure_id)
-            if self.repository.get_invoice_for_structure(
-                student.id, structure.id
-            ):
+            if self.repository.get_invoice_for_structure(student.id, structure.id):
                 raise ResourceConflictError(
                     f"{student.index_number} has already been invoiced for {structure.name}."
                 )
 
-        amount = payload.amount if payload.amount is not None else (
-            structure.amount if structure else None
+        amount = (
+            payload.amount
+            if payload.amount is not None
+            else (structure.amount if structure else None)
         )
         description = payload.description or (structure.name if structure else None)
         due_date = payload.due_date or (structure.due_date if structure else None)
@@ -165,7 +175,9 @@ class FinanceService:
         )
         paid_by_invoice = self._paid_totals([invoice.id for invoice, _s in rows])
         return [
-            self._to_invoice_read(invoice, student, paid_by_invoice.get(invoice.id, ZERO))
+            self._to_invoice_read(
+                invoice, student, paid_by_invoice.get(invoice.id, ZERO)
+            )
             for invoice, student in rows
         ]
 
@@ -220,6 +232,7 @@ class FinanceService:
         invoice.status = str(self._status_for(invoice.amount, paid + payment.amount))
         self.repository.save()
         self.repository.refresh(payment)
+        self._send_payment_confirmation(invoice, payment)
 
         return PaymentRead(
             id=payment.id,
@@ -281,6 +294,46 @@ class FinanceService:
                 totals.get(payment.invoice_id, ZERO) + payment.amount
             )
         return totals
+
+    def _send_payment_confirmation(self, invoice: Invoice, payment: Payment) -> None:
+        if self.tasks is None or self.notification is None:
+            return
+
+        student = self.repository.get_student(invoice.student_id)
+        if student is None:
+            return
+
+        subject = "Fee payment confirmation"
+        email = EmailSchema(
+            email=[student.email],
+            body={
+                "student_name": student.full_name,
+                "invoice_description": invoice.description,
+                "amount": payment.amount,
+                "payment_method": payment.method,
+                "paid_on": payment.paid_on,
+                "reference": payment.reference,
+            },
+        )
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            asyncio.run(
+                self.notification.send_email_with_template(
+                    subject=subject,
+                    email=email,
+                    template_name="payment_receipt.html",
+                )
+            )
+            return
+
+        self.tasks.add_task(
+            self.notification.send_email_with_template,
+            subject=subject,
+            email=email,
+            template_name="payment_receipt.html",
+        )
 
     @staticmethod
     def _status_for(amount: Decimal, paid: Decimal) -> InvoiceStatus:
