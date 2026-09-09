@@ -130,8 +130,9 @@ def get_grading_service(
 
 def get_finance_service(
     repository: SchoolRepository = Depends(get_school_repository),
+    tasks: BackgroundTasks = None,
 ) -> FinanceService:
-    return FinanceService(repository=repository)
+    return FinanceService(repository=repository, tasks=tasks)
 
 
 SchoolServiceDep = Annotated[SchoolService, Depends(get_school_service)]
@@ -140,5 +141,5 @@ GradingServiceDep = Annotated[GradingService, Depends(get_grading_service)]
 FinanceServiceDep = Annotated[FinanceService, Depends(get_finance_service)]
 
 
-def get_db_session() -> Generator[Session, None, None]:
+def get_db_session() -> Generator[Session]:
     yield from get_session()
